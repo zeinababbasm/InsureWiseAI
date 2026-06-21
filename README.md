@@ -2,22 +2,6 @@
 
 AI-powered health insurance navigator — USAII Global AI Hackathon 2026.
 
-## Setup
-
-1. **Install dependencies**
-   ```
-   pip install -r requirements.txt
-   ```
-
-2. **Add your Gemini API key**
-   - Open the `.env` file
-   - Replace `PASTE_YOUR_GEMINI_API_KEY_HERE` with your key from https://aistudio.google.com
-
-3. **Run locally**
-   ```
-   python app.py
-   ```
-   Then open http://localhost:5000 in your browser.
 
 ## Deploying to Render (free)
 

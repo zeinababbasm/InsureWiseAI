@@ -1,30 +1,148 @@
-import os
+import streamlit as st
 import requests
-from flask import Flask, request, jsonify, send_from_directory
-from dotenv import load_dotenv
-from flask_cors import CORS
+import os
 
-load_dotenv()
+# ── Page config ──────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="InsureWise AI",
+    page_icon="🌿",
+    layout="centered",
+)
 
-app = Flask(__name__, static_folder="static")
-CORS(app)
+# ── Inject the original CSS so it looks identical ────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+:root{
+  --bg:#EEF1ED; --bg-dim:#E2E8E2; --paper:#FBFAF6;
+  --ink:#1B2A28; --ink-soft:#516059; --line:#C9D1C8;
+  --pine:#2F6F62; --pine-dark:#1F4F45; --pine-soft:#DCE9E4;
+  --marigold:#E0822F; --marigold-soft:#F7DEC0;
+  --brick:#AE4C3A; --brick-soft:#F1DAD2;
+  --shadow:rgba(27,42,40,0.10); --radius:14px;
+}
 
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+  background: var(--bg) !important;
+  font-family: 'Source Serif 4', Georgia, serif !important;
+}
 
-@app.route("/")
-def index():
-    return send_from_directory("static", "index.html")
+[data-testid="stSidebar"] { display: none; }
+[data-testid="stToolbar"] { display: none; }
+footer { display: none; }
+#MainMenu { display: none; }
 
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; font-size: 18px; color: var(--ink);
+  padding: 18px 0 6px;
+}
+.brand-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--pine); display: inline-flex;
+  align-items: center; justify-content: center;
+}
+.brand-dot::after {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--marigold); display: block;
+}
 
-@app.route("/api/recommend", methods=["POST"])
-def recommend():
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "API key not configured on server."}), 500
+.disclaimer-box {
+  background: var(--brick-soft); border: 1px solid #DEBBAD;
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; color: #6E3526; margin-bottom: 20px;
+  font-family: 'Source Serif 4', serif;
+}
 
-    data = request.get_json()
-    answers = data.get("answers", {})
+.chat-bubble-bot {
+  background: var(--pine-soft); color: var(--ink);
+  border-radius: 13px; border-top-left-radius: 4px;
+  padding: 12px 16px; margin: 6px 0; font-size: 15px;
+  max-width: 85%; font-family: 'Source Serif 4', serif;
+  line-height: 1.5;
+}
+.chat-bubble-user {
+  background: var(--marigold); color: #3A2008;
+  border-radius: 13px; padding: 12px 16px;
+  margin: 6px 0 6px auto; font-size: 15px;
+  max-width: 85%; text-align: right;
+  font-family: 'Source Serif 4', serif; line-height: 1.5;
+}
+.chat-row-bot { display: flex; gap: 10px; margin-bottom: 4px; }
+.chat-row-user { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+.chat-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  margin-top: 14px; flex-shrink: 0;
+}
+.chat-dot-bot { background: var(--pine); }
+.chat-dot-user { background: var(--marigold); }
+
+.summary-card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 13px; padding: 22px; margin-top: 10px;
+  font-family: 'Source Serif 4', serif; font-size: 14.5px;
+  line-height: 1.6;
+}
+.summary-card h4 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--pine-dark); margin: 18px 0 6px;
+}
+.summary-card h4:first-child { margin-top: 0; }
+.summary-disclaimer {
+  font-size: 12px; color: var(--brick);
+  background: var(--brick-soft); border-radius: 8px;
+  padding: 9px 12px; margin-top: 14px;
+}
+.progress-bar-wrap {
+  background: var(--bg-dim); border-radius: 4px;
+  height: 6px; margin-bottom: 18px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; background: var(--pine);
+  border-radius: 4px; transition: width .35s ease;
+}
+.step-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--ink-soft); margin-bottom: 6px;
+}
+.stButton > button {
+  background: var(--pine) !important; color: #fff !important;
+  border: none !important; border-radius: 999px !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-weight: 600 !important; font-size: 14px !important;
+  padding: 8px 20px !important; margin: 4px 4px 4px 0 !important;
+  transition: background .15s !important;
+}
+.stButton > button:hover { background: var(--pine-dark) !important; }
+.stTextInput > div > div > input {
+  border: 1.5px solid var(--line) !important;
+  border-radius: 999px !important;
+  font-family: 'Source Serif 4', serif !important;
+  font-size: 14.5px !important; padding: 10px 18px !important;
+  background: #fff !important; color: var(--ink) !important;
+}
+.stTextInput > div > div > input:focus {
+  border-color: var(--pine) !important;
+  box-shadow: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── API key from Streamlit secrets ────────────────────────────────────────────
+def get_api_key():
+    try:
+        return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        return os.getenv("GEMINI_API_KEY", "")
+
+# ── Gemini call ───────────────────────────────────────────────────────────────
+def call_gemini(answers: dict) -> str:
+    api_key = get_api_key()
+    if not api_key:
+        return "⚠️ API key not found. Add GEMINI_API_KEY to your Streamlit secrets."
 
     priorities = answers.get("priorities", "Not specified")
     if isinstance(priorities, list):
@@ -45,34 +163,186 @@ def recommend():
 Please respond with three clearly labeled sections using these exact headings:
 
 **Programs You May Qualify For**
-List 2–3 real public programs or plan types (e.g. Medicaid, CHIP, ACA Marketplace Silver plan, Medicare, VA Health). For each, write 1–2 sentences explaining in plain language WHY this person likely qualifies, and what it covers. Do not mention fake or made-up plan names.
+List 2–3 real public programs or plan types (e.g. Medicaid, CHIP, ACA Marketplace Silver plan, Medicare, VA Health). For each, write 1–2 sentences in plain language explaining WHY this person likely qualifies and what it covers.
 
 **Your Action Checklist**
-A short numbered list. What documents they need to gather (proof of income, residency, etc.) and exactly where to apply (give the real website or agency name, e.g. healthcare.gov, their state Medicaid agency).
+A short numbered list: documents to gather (proof of income, residency, etc.) and exactly where to apply (real website or agency name, e.g. healthcare.gov, their state Medicaid agency).
 
 **One Thing Most People Miss**
-One sentence about a deadline, program rule, or tip that surprises people in this exact situation — like special enrollment windows, CHIP income thresholds being higher than Medicaid, or income change reporting rules.
+One sentence about a deadline, rule, or tip that surprises people in this exact situation.
 
-Keep the tone friendly and clear. No jargon without explanation. End with: "Remember: this is guidance, not a guarantee — always verify with your state agency or healthcare.gov." """
+Keep the tone friendly and clear — no jargon without explanation. End with: "Remember: this is guidance, not a guarantee — always verify with your state agency or healthcare.gov." """
 
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
+    try:
+        resp = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        data = resp.json()
+        if "error" in data:
+            return f"Gemini error: {data['error']['message']}"
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"Something went wrong: {str(e)}"
 
-    response = requests.post(
-        f"{GEMINI_URL}?key={GEMINI_API_KEY}",
-        json=payload,
-        headers={"Content-Type": "application/json"}
-    )
+# ── Question steps ────────────────────────────────────────────────────────────
+STEPS = [
+    {"id": "coverage",    "question": "Do you currently have any health insurance?",
+     "options": ["No, I don't have any", "Yes, through my job", "Yes, my own plan", "Not sure"]},
+    {"id": "household",   "question": "How many people are in your household, including you?",
+     "options": ["Just me", "2", "3", "4 or more"]},
+    {"id": "kids",        "question": "Do you have any children under 19 living with you?",
+     "options": ["Yes", "No"]},
+    {"id": "employment",  "question": "What's your current employment situation?",
+     "options": ["Employed full-time", "Employed part-time", "Self-employed", "Unemployed", "Retired"]},
+    {"id": "income",      "question": "Roughly, what's your household's monthly income before taxes?",
+     "options": ["Under $1,500", "$1,500–$3,000", "$3,000–$5,000", "Over $5,000"]},
+    {"id": "age",         "question": "What's your age group?",
+     "options": ["Under 26", "26–49", "50–64", "65 or older"]},
+    {"id": "military",    "question": "Have you or an immediate family member served in the U.S. military?",
+     "options": ["I'm a veteran", "I'm active duty", "Immediate family served", "Not applicable"]},
+    {"id": "location",    "question": "Which state do you live in?",
+     "options": ["Texas", "California", "Florida", "New York", "Other — I'll type it"]},
+    {"id": "priorities",  "question": "What matters most to you in a plan? (pick all that apply)",
+     "options": ["Low monthly cost", "Low deductible", "Keeping my current doctor",
+                 "Prescription coverage", "Mental health coverage", "Dental & vision"],
+     "multi": True},
+]
 
-    result = response.json()
+# ── Session state init ────────────────────────────────────────────────────────
+if "step" not in st.session_state:
+    st.session_state.step = 0
+if "answers" not in st.session_state:
+    st.session_state.answers = {}
+if "history" not in st.session_state:
+    st.session_state.history = []  # list of (role, text)
+if "result" not in st.session_state:
+    st.session_state.result = None
+if "disclaimer_done" not in st.session_state:
+    st.session_state.disclaimer_done = False
 
-    if "error" in result:
-        return jsonify({"error": result["error"]["message"]}), 500
+# ── Brand header ──────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="brand">
+  <span class="brand-dot"></span>
+  InsureWise AI
+</div>
+""", unsafe_allow_html=True)
 
-    text = result["candidates"][0]["content"]["parts"][0]["text"]
-    return jsonify({"text": text})
+# ── Disclaimer ────────────────────────────────────────────────────────────────
+if not st.session_state.disclaimer_done:
+    st.markdown("""
+    <div class="disclaimer-box">
+      <strong>Before you continue:</strong> Every provider and plan name in this demo is
+      synthetic — built for the USAII Global AI Hackathon 2026. Nothing here is a real
+      insurance offer or a guarantee of eligibility. For real enrollment, visit
+      <a href="https://healthcare.gov" target="_blank">healthcare.gov</a> or your state Medicaid agency.
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("I understand — let's get started →"):
+        st.session_state.disclaimer_done = True
+        st.rerun()
+    st.stop()
 
+# ── Done — show result ────────────────────────────────────────────────────────
+if st.session_state.result is not None:
+    # Replay chat history
+    for role, text in st.session_state.history:
+        if role == "bot":
+            st.markdown(f'<div class="chat-row-bot"><div class="chat-dot chat-dot-bot"></div><div class="chat-bubble-bot">{text}</div></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-row-user"><div class="chat-bubble-user">{text}</div></div>', unsafe_allow_html=True)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    # Format AI result
+    formatted = ""
+    for line in st.session_state.result.split("\n"):
+        h = line.strip().strip("*")
+        if line.strip().startswith("**") and line.strip().endswith("**"):
+            formatted += f"<h4>{h}</h4>"
+        else:
+            inline = line.replace("**", "<strong>", 1).replace("**", "</strong>", 1)
+            formatted += f"<p style='margin:0 0 6px'>{inline}</p>"
+
+    st.markdown(f"""
+    <div class="summary-card">
+      {formatted}
+      <div class="summary-disclaimer">
+        This is guidance, not a guarantee — verify eligibility at
+        <a href="https://healthcare.gov" target="_blank">healthcare.gov</a>
+        or your state Medicaid agency. Sessions are not stored.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.write("")
+    if st.button("↩ Start over"):
+        for key in ["step", "answers", "history", "result"]:
+            del st.session_state[key]
+        st.rerun()
+    st.stop()
+
+# ── Progress bar ──────────────────────────────────────────────────────────────
+total = len(STEPS)
+current = st.session_state.step
+pct = int((current / total) * 100)
+st.markdown(f'<div class="step-label">Step {min(current+1, total)} of {total}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
+
+# ── Replay history ────────────────────────────────────────────────────────────
+for role, text in st.session_state.history:
+    if role == "bot":
+        st.markdown(f'<div class="chat-row-bot"><div class="chat-dot chat-dot-bot"></div><div class="chat-bubble-bot">{text}</div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="chat-row-user"><div class="chat-bubble-user">{text}</div></div>', unsafe_allow_html=True)
+
+# ── Current question ──────────────────────────────────────────────────────────
+step = STEPS[current]
+st.markdown(f'<div class="chat-row-bot"><div class="chat-dot chat-dot-bot"></div><div class="chat-bubble-bot">{step["question"]}</div></div>', unsafe_allow_html=True)
+st.write("")
+
+is_multi = step.get("multi", False)
+
+if is_multi:
+    selected = st.multiselect("Pick all that apply:", step["options"], label_visibility="collapsed")
+    if st.button("Send →"):
+        answer = selected if selected else []
+        display = ", ".join(answer) if answer else "No strong preference"
+        st.session_state.history.append(("bot", step["question"]))
+        st.session_state.history.append(("user", display))
+        st.session_state.answers[step["id"]] = answer
+        st.session_state.step += 1
+        # Last step — call Gemini
+        if st.session_state.step >= total:
+            with st.spinner("Checking your options with InsureWise AI..."):
+                st.session_state.result = call_gemini(st.session_state.answers)
+        st.rerun()
+else:
+    # Show chips as buttons in columns
+    cols = st.columns(2)
+    for i, opt in enumerate(step["options"]):
+        if cols[i % 2].button(opt, key=f"opt_{current}_{i}"):
+            st.session_state.history.append(("bot", step["question"]))
+            st.session_state.history.append(("user", opt))
+            st.session_state.answers[step["id"]] = opt
+            st.session_state.step += 1
+            if st.session_state.step >= total:
+                with st.spinner("Checking your options with InsureWise AI..."):
+                    st.session_state.result = call_gemini(st.session_state.answers)
+            st.rerun()
+
+    # Or type it
+    st.write("")
+    with st.form(key=f"text_form_{current}", clear_on_submit=True):
+        typed = st.text_input("Or type your own answer:", placeholder="Type here...", label_visibility="collapsed")
+        submitted = st.form_submit_button("Send")
+        if submitted and typed.strip():
+            st.session_state.history.append(("bot", step["question"]))
+            st.session_state.history.append(("user", typed.strip()))
+            st.session_state.answers[step["id"]] = typed.strip()
+            st.session_state.step += 1
+            if st.session_state.step >= total:
+                with st.spinner("Checking your options with InsureWise AI..."):
+                    st.session_state.result = call_gemini(st.session_state.answers)
+            st.rerun()
