@@ -1,119 +1,78 @@
-import streamlit as st
-import google.generativeai as genai
-from dotenv import load_dotenv
 import os
+import requests
+from flask import Flask, request, jsonify, send_from_directory
+from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+app = Flask(__name__, static_folder="static")
+CORS(app)
 
-model = genai.GenerativeModel("gemini-2.5-flash")
-# Page settings
-st.set_page_config(page_title="InsureWise AI", page_icon="🏥")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-# Title
-st.title("🏥 InsureWise AI")
-st.subheader("Public Health Benefits Navigator")
 
-st.write(
-    "Describe your situation in plain language. "
-    "InsureWise AI will help you understand which public health programs "
-    "you may qualify for and what steps to take next."
-)
+@app.route("/")
+def index():
+    return send_from_directory("static", "index.html")
 
-# Sidebar
-st.sidebar.header("📚 Key Terms")
 
-st.sidebar.write("""
-**Premium**  
-What you pay monthly for insurance.
+@app.route("/api/recommend", methods=["POST"])
+def recommend():
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "API key not configured on server."}), 500
 
-**Deductible**  
-What you pay before insurance starts covering costs.
+    data = request.get_json()
+    answers = data.get("answers", {})
 
-**Copay**  
-A fixed amount you pay for a visit.
+    priorities = answers.get("priorities", "Not specified")
+    if isinstance(priorities, list):
+        priorities = ", ".join(priorities)
 
-**In-network**  
-Doctors and hospitals covered at lower cost.
-""")
+    prompt = f"""You are InsureWise AI — a warm, knowledgeable assistant that helps Americans navigate public health insurance programs. A user has shared the following about their situation:
 
-# Chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+- Currently has insurance: {answers.get("coverage", "Unknown")}
+- Household size: {answers.get("household", "Unknown")}
+- Children under 19 at home: {answers.get("kids", "Unknown")}
+- Employment status: {answers.get("employment", "Unknown")}
+- Monthly household income (before taxes): {answers.get("income", "Unknown")}
+- Age group: {answers.get("age", "Unknown")}
+- Military / veteran connection: {answers.get("military", "Unknown")}
+- State: {answers.get("location", "Unknown")}
+- Coverage priorities: {priorities}
 
-# Show previous messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+Please respond with three clearly labeled sections using these exact headings:
 
-# User input
-prompt = st.chat_input("Describe your situation...")
+**Programs You May Qualify For**
+List 2–3 real public programs or plan types (e.g. Medicaid, CHIP, ACA Marketplace Silver plan, Medicare, VA Health). For each, write 1–2 sentences explaining in plain language WHY this person likely qualifies, and what it covers. Do not mention fake or made-up plan names.
 
-if prompt:
-    # Display user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+**Your Action Checklist**
+A short numbered list. What documents they need to gather (proof of income, residency, etc.) and exactly where to apply (give the real website or agency name, e.g. healthcare.gov, their state Medicaid agency).
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+**One Thing Most People Miss**
+One sentence about a deadline, program rule, or tip that surprises people in this exact situation — like special enrollment windows, CHIP income thresholds being higher than Medicaid, or income change reporting rules.
 
-    system_prompt = """
-You are InsureWise AI, a friendly public health benefits navigator.
+Keep the tone friendly and clear. No jargon without explanation. End with: "Remember: this is guidance, not a guarantee — always verify with your state agency or healthcare.gov." """
 
-Your job is to help users understand which public health programs they may qualify for.
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
 
-Always explain things in simple language.
-
-Recommend only from:
-
-- Medicaid
-- CHIP
-- ACA Marketplace plans with subsidies
-- Community Health Centers
-
-Always organize your answer into these sections:
-
-## Programs You May Qualify For
-
-Explain each program and why.
-
-## Documents to Gather
-
-Examples:
-- Proof of income
-- Household information
-- Proof of residency
-
-## Next Steps
-
-Provide clear actions.
-
-## Key Terms Explained
-
-Explain premium, deductible, copay, or in-network if needed.
-
-## Important Reminder
-
-State:
-
-"This is guidance only and not an official eligibility determination. Please verify information through Healthcare.gov or your state Medicaid agency."
-
-Never ask for:
-- Social Security numbers
-- Addresses
-- Account numbers
-"""
-
-    full_prompt = system_prompt + "\n\nUser:\n" + prompt
-
-    response = model.generate_content(full_prompt)
-
-    answer = response.text
-
-    # Display assistant response
-    with st.chat_message("assistant"):
-        st.markdown(answer)
-
-    st.session_state.messages.append(
-        {"role": "assistant", "content": answer}
+    response = requests.post(
+        f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+        json=payload,
+        headers={"Content-Type": "application/json"}
     )
+
+    result = response.json()
+
+    if "error" in result:
+        return jsonify({"error": result["error"]["message"]}), 500
+
+    text = result["candidates"][0]["content"]["parts"][0]["text"]
+    return jsonify({"text": text})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

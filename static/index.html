@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InsureWise AI — Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#EEF1ED;
+  --bg-dim:#E2E8E2;
+  --paper:#FBFAF6;
+  --ink:#1B2A28;
+  --ink-soft:#516059;
+  --line:#C9D1C8;
+  --pine:#2F6F62;
+  --pine-dark:#1F4F45;
+  --pine-soft:#DCE9E4;
+  --marigold:#E0822F;
+  --marigold-soft:#F7DEC0;
+  --brick:#AE4C3A;
+  --brick-soft:#F1DAD2;
+  --shadow:rgba(27,42,40,0.10);
+  --radius:14px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Source Serif 4', Georgia, serif;
+  font-size:16px;
+  line-height:1.5;
+  min-height:100vh;
+}
+h1,h2,h3,.display,button,.chip,.eyebrow,.label,.step-counter{
+  font-family:'Space Grotesk', sans-serif;
+}
+.mono{font-family:'IBM Plex Mono', monospace;}
+
+#app{position:relative; min-height:100vh;}
+
+.screen{display:none; min-height:100vh;}
+.screen.active{display:block;}
+
+a{color:var(--pine-dark);}
+
+button{cursor:pointer; border:none; background:none; font:inherit; color:inherit;}
+button:focus-visible, input:focus-visible, .chip:focus-visible{
+  outline:3px solid var(--marigold);
+  outline-offset:2px;
+}
+
+/* ---------- Disclaimer modal ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(20,28,26,0.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:200; padding:24px;
+}
+.modal-overlay.hidden{display:none;}
+.modal-card{
+  background:var(--paper); border-radius:var(--radius);
+  max-width:460px; width:100%; padding:30px 30px 26px;
+  box-shadow:0 24px 60px var(--shadow);
+  border:1px solid var(--line);
+}
+.modal-card .eyebrow{
+  font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--brick); font-weight:600; margin-bottom:10px; display:block;
+}
+.modal-card h2{font-size:21px; margin:0 0 12px; color:var(--ink);}
+.modal-card p{font-size:14.5px; color:var(--ink-soft); margin:0 0 18px;}
+.modal-card button.primary{
+  width:100%; background:var(--pine); color:#fff; font-weight:600;
+  font-size:15px; padding:12px 16px; border-radius:9px;
+  transition:background .15s ease;
+}
+.modal-card button.primary:hover{background:var(--pine-dark);}
+
+/* ---------- Shared layout bits ---------- */
+.wrap{max-width:1080px; margin:0 auto; padding:0 28px;}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:22px 28px; max-width:1080px; margin:0 auto;
+}
+.brand{display:flex; align-items:center; gap:9px; font-weight:700; font-size:15px; letter-spacing:.01em;}
+.brand .mark{
+  width:22px; height:22px; border-radius:50%;
+  background:var(--pine); position:relative; flex:none;
+}
+.brand .mark::after{
+  content:''; position:absolute; left:50%; top:50%;
+  width:6px; height:6px; border-radius:50%; background:var(--marigold);
+  transform:translate(-50%,-50%);
+}
+.backlink{font-size:13.5px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;}
+.backlink:hover{color:var(--pine-dark);}
+
+.footnote{
+  font-size:12px; color:var(--ink-soft); text-align:center;
+  padding:22px 28px 34px; max-width:640px; margin:0 auto;
+}
+.footnote b{color:var(--ink);}
+
+/* ---------- Landing screen ---------- */
+.hero{
+  display:grid; grid-template-columns:1.05fr 0.95fr; gap:40px;
+  align-items:center; padding:48px 28px 30px; max-width:1080px; margin:0 auto;
+  min-height:64vh;
+}
+.hero .eyebrow{
+  font-size:12.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--pine-dark); font-weight:600; margin-bottom:16px; display:block;
+}
+.hero h1{
+  font-size:clamp(34px,5vw,52px); line-height:1.04; margin:0 0 18px;
+  font-weight:700; letter-spacing:-0.01em; color:var(--ink);
+}
+.hero h1 em{color:var(--pine); font-style:normal;}
+.hero p.lede{font-size:17px; color:var(--ink-soft); max-width:440px; margin:0 0 30px;}
+
+.disclaimer-strip{
+  display:flex; gap:10px; align-items:flex-start;
+  background:var(--brick-soft); border:1px solid #DEBBAD; border-radius:10px;
+  padding:12px 14px; font-size:12.5px; color:#6E3526; max-width:480px; margin-bottom:6px;
+}
+.disclaimer-strip .dot{width:6px; height:6px; border-radius:50%; background:var(--brick); margin-top:6px; flex:none;}
+
+/* signpost */
+.signpost{position:relative; height:300px; display:flex; align-items:center; justify-content:center;}
+.post{
+  position:absolute; left:50%; top:0; bottom:0; width:3px;
+  background:linear-gradient(to bottom, transparent, var(--line) 12%, var(--line) 88%, transparent);
+  transform:translateX(-50%);
+}
+.sign{
+  position:absolute; display:flex; align-items:center; gap:10px;
+  padding:14px 22px 14px 20px; border-radius:6px 16px 16px 6px;
+  font-weight:600; font-size:15.5px; box-shadow:0 10px 26px var(--shadow);
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.sign:hover{transform:translateX(4px) rotate(0deg) !important;}
+.sign .arrow{font-size:18px; line-height:1;}
+.sign.primary{
+  background:var(--pine); color:#fff; top:18%; left:50%;
+  transform:translate(0,0) rotate(-2deg);
+}
+.sign.secondary{
+  background:var(--paper); color:var(--ink); border:1.5px solid var(--line);
+  top:54%; left:50%; transform:translate(0,0) rotate(2deg);
+}
+.sign-mount{
+  position:absolute; width:10px; height:10px; border-radius:50%;
+  background:var(--ink); left:50%; transform:translateX(-50%);
+}
+.sign-mount.m1{top:calc(18% + 19px);}
+.sign-mount.m2{top:calc(54% + 19px);}
+
+@media (max-width: 760px){
+  .hero{grid-template-columns:1fr; padding-top:30px;}
+  .signpost{height:220px;}
+  .sign{font-size:14px; padding:12px 16px;}
+}
+
+/* ---------- Providers screen ---------- */
+.providers-head{padding:0 28px 6px; max-width:1080px; margin:0 auto;}
+.providers-head h2{font-size:28px; margin:18px 0 8px;}
+.providers-head p{color:var(--ink-soft); font-size:14.5px; max-width:560px; margin:0 0 22px;}
+.provider-grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:18px;
+  max-width:1080px; margin:0 auto; padding:0 28px 30px;
+}
+@media (max-width: 880px){.provider-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width: 580px){.provider-grid{grid-template-columns:1fr;}}
+
+.provider-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px; display:flex; flex-direction:column; gap:10px;
+}
+.provider-tag{
+  display:inline-block; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+  font-weight:600; color:var(--pine-dark); background:var(--pine-soft);
+  padding:4px 9px; border-radius:5px; align-self:flex-start;
+}
+.provider-card h3{font-size:18px; margin:0; font-family:'Space Grotesk',sans-serif;}
+.provider-card p{font-size:13.5px; color:var(--ink-soft); margin:0; flex:1;}
+.provider-card .sample{font-size:12px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:10px;}
+.provider-card .sample b{color:var(--ink); font-weight:600;}
+
+/* ---------- Chat screen ---------- */
+.chat-shell{
+  max-width:760px; margin:0 auto; padding:0 20px 40px;
+  display:flex; flex-direction:column; min-height:78vh;
+}
+.progress-row{display:flex; align-items:center; gap:12px; padding:6px 0 22px;}
+.step-counter{font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+.progress-track{flex:1; height:6px; background:var(--bg-dim); border-radius:4px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--pine); border-radius:4px; transition:width .35s ease;}
+
+.chat-window{
+  background:var(--paper); border:1px solid var(--line); border-radius:18px;
+  flex:1; display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 18px 40px var(--shadow);
+}
+.chat-header{
+  display:flex; align-items:center; gap:10px; padding:16px 20px;
+  border-bottom:1px solid var(--line);
+}
+.chat-header .avatar{
+  width:30px; height:30px; border-radius:50%; background:var(--pine);
+  position:relative; flex:none;
+}
+.chat-header .avatar::after{
+  content:''; position:absolute; left:50%; top:50%; width:8px; height:8px;
+  border-radius:50%; background:var(--marigold); transform:translate(-50%,-50%);
+}
+.chat-header .who{font-weight:600; font-size:14.5px;}
+.chat-header .status{font-size:12px; color:var(--ink-soft);}
+
+.messages{
+  flex:1; overflow-y:auto; padding:22px 22px 10px; position:relative;
+  display:flex; flex-direction:column; gap:0;
+}
+.messages::before{
+  content:''; position:absolute; left:33px; top:14px; bottom:14px; width:2px;
+  background:var(--line); z-index:0;
+}
+.msg-row{display:flex; gap:12px; margin-bottom:16px; position:relative; z-index:1;}
+.dot-col{width:24px; flex:none; display:flex; justify-content:center; padding-top:8px;}
+.dot{width:11px; height:11px; border-radius:50%; border:2px solid var(--paper); box-shadow:0 0 0 1px var(--line);}
+.msg-row.bot .dot{background:var(--pine);}
+.msg-row.user .dot{background:var(--marigold);}
+.bubble{
+  max-width:78%; padding:11px 15px; border-radius:13px; font-size:14.5px;
+  line-height:1.5;
+}
+.msg-row.bot .bubble{background:var(--pine-soft); color:var(--ink); border-top-left-radius:4px;}
+.msg-row.user .bubble{background:var(--marigold); color:#3A2008; border-radius:13px; border-top-left-radius:13px; margin-left:auto;}
+
+.typing .bubble{display:flex; gap:4px; align-items:center; padding:13px 16px;}
+.typing .tdot{width:6px; height:6px; border-radius:50%; background:var(--pine-dark); opacity:.5; animation:bounce 1.1s infinite ease-in-out;}
+.typing .tdot:nth-child(2){animation-delay:.15s;}
+.typing .tdot:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0); opacity:.4;} 30%{transform:translateY(-4px); opacity:1;}}
+
+/* summary card inside chat */
+.summary-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:13px;
+  padding:18px; max-width:92%; font-size:14px;
+}
+.summary-card h4{
+  font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--pine-dark); margin:0 0 10px;
+}
+.summary-card .block{margin-bottom:18px;}
+.summary-card .block:last-of-type{margin-bottom:8px;}
+.plan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px;}
+.plan-card{border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--bg);}
+.plan-card .provider{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em;}
+.plan-card .plan-name{font-weight:600; font-size:14px; margin:2px 0 8px;}
+.plan-card .figs{display:flex; gap:14px; margin-bottom:8px;}
+.plan-card .figs div span{display:block; font-size:10.5px; color:var(--ink-soft);}
+.plan-card .figs div b{font-family:'IBM Plex Mono',monospace; font-size:14px;}
+.plan-card .why{font-size:12px; color:var(--ink-soft);}
+.summary-card ul{margin:0; padding-left:18px;}
+.summary-card li{margin-bottom:6px; font-size:13.5px;}
+.summary-disclaimer{
+  font-size:11.5px; color:var(--brick); background:var(--brick-soft);
+  border-radius:8px; padding:9px 11px; margin-top:6px;
+}
+.restart-btn{
+  margin-top:12px; background:var(--ink); color:#fff; font-weight:600;
+  font-size:13px; padding:9px 14px; border-radius:8px;
+}
+.restart-btn:hover{background:var(--pine-dark);}
+
+.input-area{border-top:1px solid var(--line); padding:14px 18px 16px; background:var(--paper);}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+.chip{
+  border:1.5px solid var(--pine); color:var(--pine-dark); background:#fff;
+  border-radius:999px; padding:8px 14px; font-size:13px; font-weight:500;
+  transition:background .15s ease, color .15s ease;
+}
+.chip:hover{background:var(--pine-soft);}
+.chip.selected{background:var(--pine); color:#fff;}
+.send-multi{
+  background:var(--marigold); color:#3A2008; font-weight:600; font-size:13px;
+  padding:8px 16px; border-radius:999px; margin-bottom:10px;
+}
+.text-row{display:flex; gap:10px;}
+.text-row input{
+  flex:1; border:1.5px solid var(--line); border-radius:999px; padding:11px 16px;
+  font-family:'Source Serif 4', serif; font-size:14.5px; background:#fff; color:var(--ink);
+}
+.text-row input:focus{border-color:var(--pine);}
+.text-row button.send{
+  background:var(--pine); color:#fff; font-weight:600; font-size:13.5px;
+  padding:0 20px; border-radius:999px;
+}
+.text-row button.send:hover{background:var(--pine-dark);}
+.input-hint{font-size:11.5px; color:var(--ink-soft); margin-top:8px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Disclaimer modal ===== -->
+  <div class="modal-overlay" id="disclaimerModal">
+    <div class="modal-card">
+      <span class="eyebrow">Before you continue</span>
+      <h2>This is a hackathon prototype.</h2>
+      <p>
+        Every provider, plan name, and price you see in this demo is <b>synthetic or fictionalized</b> —
+        built for the USAII Global AI Hackathon 2026. None of it is a real insurance product, a real offer
+        of coverage, or affiliated with any actual insurer, even where a name may resemble one. Nothing here
+        is a guarantee of eligibility. For real enrollment, visit healthcare.gov or your state Medicaid agency.
+      </p>
+      <button class="primary" id="ackBtn">I understand — continue</button>
+    </div>
+  </div>
+
+  <!-- ===== Landing screen ===== -->
+  <section class="screen active" id="screen-landing">
+    <div class="topbar">
+      <div class="brand"><span class="mark"></span> InsureWise AI</div>
+    </div>
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Prototype · Not real insurance</span>
+        <h1>Find the right<br><em>insurance</em> for your life.</h1>
+        <p class="lede">
+          Tell us a little about your situation in plain English. We'll match you with the public
+          programs, marketplace plans, or providers you may actually qualify for — and explain why.
+        </p>
+        <div class="disclaimer-strip">
+          <span class="dot"></span>
+          <span>All providers and plans shown here are synthetic, built for this hackathon demo —
+          not real insurance offers, even if a name looks familiar.</span>
+        </div>
+      </div>
+      <div class="signpost">
+        <div class="post"></div>
+        <div class="sign-mount m1"></div>
+        <div class="sign-mount m2"></div>
+        <button class="sign primary" id="goChat"><span class="arrow">→</span> Find My Plan</button>
+        <button class="sign secondary" id="goProviders"><span class="arrow">→</span> Browse All Providers</button>
+      </div>
+    </div>
+    <p class="footnote"><b>InsureWise AI</b> — USAII Global AI Hackathon 2026. Prototype for demonstration only.</p>
+  </section>
+
+  <!-- ===== Providers screen ===== -->
+  <section class="screen" id="screen-providers">
+    <div class="topbar">
+      <div class="brand"><span class="mark"></span> InsureWise AI</div>
+      <button class="backlink" data-go="landing">← Back</button>
+    </div>
+    <div class="providers-head">
+      <h2>Providers in this prototype</h2>
+      <p>A small, fictional set of providers used to demo the matching experience — spanning public
+      programs, military coordination, Medicare, and private plans. None of these are real companies.</p>
+    </div>
+    <div class="provider-grid" id="providerGrid"></div>
+    <p class="footnote">Prefer a guided match instead of browsing? <a href="#" data-go="chat">Try Find My Plan →</a></p>
+  </section>
+
+  <!-- ===== Chat screen ===== -->
+  <section class="screen" id="screen-chat">
+    <div class="topbar">
+      <div class="brand"><span class="mark"></span> InsureWise AI</div>
+      <button class="backlink" data-go="landing">← Back</button>
+    </div>
+    <div class="chat-shell">
+      <div class="progress-row">
+        <span class="step-counter mono" id="stepCounter">Step 1 of 9</span>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+      <div class="chat-window">
+        <div class="chat-header">
+          <div class="avatar"></div>
+          <div>
+            <div class="who">InsureWise AI</div>
+            <div class="status" id="chatStatus">No login. No forms. Just a conversation.</div>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-area" id="inputArea"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const PROVIDERS = [
+  {name:"Clearpath Marketplace", tag:"ACA Marketplace", blurb:"Subsidized marketplace plans — the only place to get a $0-premium plan if your income qualifies.", sample:"Bronze Connect · Silver Connect · Gold Connect"},
+  {name:"Civic Health Network", tag:"Public Program", blurb:"Sliding-scale clinics plus CHIP and Medicaid enrollment support — no insurance required to be seen.", sample:"Sliding-Scale Care · CHIP Children's Coverage"},
+  {name:"TrueNorth Care", tag:"Veteran & Military", blurb:"Coordinates with VA and TRICARE benefits for veterans, active duty, and military families.", sample:"Veteran Health Bridge · Family Coordination Plan"},
+  {name:"Wayfinder Mutual", tag:"Medicare", blurb:"Medicare Advantage and supplement plans for people 65 and older.", sample:"Medicare Advantage Bridge · Supplement Plus"},
+  {name:"Harbor & Sage Insurance", tag:"Private", blurb:"Traditional employer-style private plans with broad national provider networks.", sample:"Harbor Choice PPO · Sage Essentials HMO"},
+  {name:"Northbridge Health", tag:"Private", blurb:"Lower-cost private plans built around regional provider networks.", sample:"Northbridge Basic · Northbridge Plus"}
+];
+
+const PRIORITY_LABELS = ["Low monthly cost","Low deductible","Keeping my current doctor","Prescription coverage","Mental health coverage","Dental & vision"];
+
+const STEPS = [
+  { id:"coverage", bot:["First — do you currently have any health insurance?"], type:"single",
+    options:["No, I don't have any","Yes, through my job","Yes, my own plan","Not sure"] },
+  { id:"household", bot:["Got it. How many people are in your household, including you?"], type:"single",
+    options:["Just me","2","3","4 or more"] },
+  { id:"kids", bot:["Do you have any children under 19 living with you?"], type:"single",
+    options:["Yes","No"] },
+  { id:"employment", bot:["What's your current employment situation?"], type:"single",
+    options:["Employed full-time","Employed part-time","Self-employed","Unemployed","Retired"] },
+  { id:"income", bot:["Roughly, what's your household's monthly income before taxes?","You can pick a range or just type a number."], type:"single",
+    options:["Under $1,500","$1,500–$3,000","$3,000–$5,000","Over $5,000"] },
+  { id:"age", bot:["What's your age?"], type:"single",
+    options:["Under 26","26–49","50–64","65 or older"] },
+  { id:"military", bot:["Have you or an immediate family member served in the U.S. military?"], type:"single",
+    options:["I'm a veteran","I'm active duty","Immediate family served","Not applicable"] },
+  { id:"location", bot:["Which state do you live in?"], type:"single",
+    options:["Texas","California","Florida","New York"] },
+  { id:"priorities", bot:["Last thing — what matters most to you in a plan?","Pick as many as you'd like, then hit Send."], type:"multi",
+    options:PRIORITY_LABELS }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let currentStep = 0;
+let answers = {};
+let multiSelected = new Set();
+let busy = false; // true while a typing indicator is showing — blocks double input
+
+/* ============================================================
+   SCREEN NAVIGATION
+   ============================================================ */
+function goScreen(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+name).classList.add("active");
+  if(name === "chat" && currentStep === 0 && Object.keys(answers).length === 0 && document.getElementById("messages").children.length === 0){
+    askStep(0);
+  }
+  window.scrollTo({top:0});
+}
+
+document.querySelectorAll("[data-go]").forEach(el=>{
+  el.addEventListener("click", e=>{ e.preventDefault(); goScreen(el.getAttribute("data-go")); });
+});
+document.getElementById("goChat").addEventListener("click", ()=>goScreen("chat"));
+document.getElementById("goProviders").addEventListener("click", ()=>goScreen("providers"));
+
+document.getElementById("ackBtn").addEventListener("click", ()=>{
+  document.getElementById("disclaimerModal").classList.add("hidden");
+});
+
+/* ============================================================
+   PROVIDERS RENDER
+   ============================================================ */
+function renderProviders(){
+  const grid = document.getElementById("providerGrid");
+  grid.innerHTML = "";
+  PROVIDERS.forEach(p=>{
+    const card = document.createElement("div");
+    card.className = "provider-card";
+    card.innerHTML = `
+      <span class="provider-tag">${p.tag}</span>
+      <h3>${p.name}</h3>
+      <p>${p.blurb}</p>
+      <div class="sample"><b>Sample plans:</b> ${p.sample}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+renderProviders();
+
+/* ============================================================
+   CHAT ENGINE
+   ============================================================ */
+const messagesEl = document.getElementById("messages");
+const inputAreaEl = document.getElementById("inputArea");
+
+function scrollToBottom(){
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendMessage(role, text){
+  const row = document.createElement("div");
+  row.className = "msg-row " + role;
+  row.innerHTML = `<div class="dot-col"><div class="dot"></div></div><div class="bubble"></div>`;
+  row.querySelector(".bubble").textContent = text;
+  messagesEl.appendChild(row);
+  scrollToBottom();
+}
+
+function appendSummaryNode(node){
+  const row = document.createElement("div");
+  row.className = "msg-row bot";
+  row.innerHTML = `<div class="dot-col"><div class="dot"></div></div>`;
+  row.appendChild(node);
+  messagesEl.appendChild(row);
+  scrollToBottom();
+}
+
+function showTyping(delay, callback){
+  busy = true;
+  const row = document.createElement("div");
+  row.className = "msg-row bot typing";
+  row.innerHTML = `<div class="dot-col"><div class="dot"></div></div>
+    <div class="bubble"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>`;
+  messagesEl.appendChild(row);
+  scrollToBottom();
+  setTimeout(()=>{
+    row.remove();
+    busy = false;
+    callback();
+  }, delay);
+}
+
+function updateProgress(idx){
+  const total = STEPS.length;
+  document.getElementById("stepCounter").textContent = "Step " + Math.min(idx+1,total) + " of " + total;
+  document.getElementById("progressFill").style.width = Math.min(((idx)/total)*100, 100) + "%";
+}
+
+function askStep(idx){
+  currentStep = idx;
+  updateProgress(idx);
+  if(idx >= STEPS.length){ finishChat(); return; }
+  const step = STEPS[idx];
+  const delay = 650 + Math.random()*500;
+  showTyping(delay, ()=>{
+    step.bot.forEach(line => appendMessage("bot", line));
+    multiSelected = new Set();
+    renderInputControls(step);
+  });
+}
+
+function renderInputControls(step){
+  inputAreaEl.innerHTML = "";
+
+  const chipsWrap = document.createElement("div");
+  chipsWrap.className = "chips";
+  step.options.forEach(opt=>{
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.type = "button";
+    chip.textContent = opt;
+    chip.addEventListener("click", ()=>{
+      if(busy) return;
+      if(step.type === "multi"){
+        chip.classList.toggle("selected");
+        if(multiSelected.has(opt)) multiSelected.delete(opt); else multiSelected.add(opt);
+      } else {
+        submitAnswer(step, opt, opt);
+      }
+    });
+    chipsWrap.appendChild(chip);
+  });
+  inputAreaEl.appendChild(chipsWrap);
+
+  if(step.type === "multi"){
+    const sendBtn = document.createElement("button");
+    sendBtn.className = "send-multi";
+    sendBtn.type = "button";
+    sendBtn.textContent = "Send selected →";
+    sendBtn.addEventListener("click", ()=>{
+      if(busy) return;
+      if(multiSelected.size === 0){
+        appendMessage("user", "(none in particular)");
+        submitAnswer(step, [], "no strong preference");
+      } else {
+        const arr = Array.from(multiSelected);
+        submitAnswer(step, arr, arr.join(", "));
+      }
+    });
+    inputAreaEl.appendChild(sendBtn);
+  }
+
+  const textRow = document.createElement("div");
+  textRow.className = "text-row";
+  textRow.innerHTML = `<input type="text" placeholder="Or type your own answer..." aria-label="Type your answer">
+    <button class="send" type="button">Send</button>`;
+  const input = textRow.querySelector("input");
+  const sendBtn = textRow.querySelector("button.send");
+
+  function handleTextSubmit(){
+    if(busy) return;
+    const raw = input.value.trim();
+    if(!raw) return;
+    input.value = "";
+    handleFreeText(step, raw);
+  }
+  sendBtn.addEventListener("click", handleTextSubmit);
+  input.addEventListener("keydown", e=>{ if(e.key === "Enter") handleTextSubmit(); });
+
+  inputAreaEl.appendChild(textRow);
+
+  const hint = document.createElement("div");
+  hint.className = "input-hint";
+  hint.textContent = step.type === "multi"
+    ? "Tap any that apply, or describe it in your own words."
+    : "Tap an option above, or just type your answer the way you'd say it.";
+  inputAreaEl.appendChild(hint);
+
+  input.focus();
+}
+
+function submitAnswer(step, value, displayText){
+  appendMessage("user", displayText);
+  answers[step.id] = value;
+  inputAreaEl.innerHTML = "";
+  askStep(currentStep + 1);
+}
+
+function handleFreeText(step, raw){
+  appendMessage("user", raw);
+  if(step.type === "multi"){
+    const parsed = interpretPriorities(raw);
+    if(parsed.length === 0){
+      nudge(step, "I didn't catch a specific priority in that — could you pick from the options below, or mention a couple of those words directly?");
+      return;
+    }
+    answers[step.id] = parsed;
+    inputAreaEl.innerHTML = "";
+    askStep(currentStep + 1);
+    return;
+  }
+  const parsed = interpretSingle(step.id, raw);
+  if(parsed === null){
+    nudge(step, "Got it, thanks — just to make sure I match you accurately, could you tap one of the options below, or rephrase that a bit?");
+    return;
+  }
+  answers[step.id] = parsed;
+  inputAreaEl.innerHTML = "";
+  askStep(currentStep + 1);
+}
+
+function nudge(step, text){
+  inputAreaEl.innerHTML = "";
+  showTyping(550, ()=>{
+    appendMessage("bot", text);
+    renderInputControls(step);
+  });
+}
+
+/* ----- lightweight free-text interpretation ----- */
+function extractNumber(t){
+  const cleaned = t.replace(/,/g,"");
+  const m = cleaned.match(/\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+function interpretSingle(stepId, raw){
+  const t = raw.toLowerCase();
+  switch(stepId){
+    case "coverage":
+      if(/no\b|none|don'?t have|uninsured/.test(t)) return "No, I don't have any";
+      if(/job|work|employer/.test(t)) return "Yes, through my job";
+      if(/my own|bought|private|marketplace/.test(t)) return "Yes, my own plan";
+      if(/not sure|maybe|don'?t know/.test(t)) return "Not sure";
+      return null;
+    case "household": {
+      const n = extractNumber(t);
+      if(n !== null){
+        if(n <= 1) return "Just me";
+        if(n === 2) return "2";
+        if(n === 3) return "3";
+        return "4 or more";
+      }
+      if(/just me|alone|myself|single/.test(t)) return "Just me";
+      return null;
+    }
+    case "kids":
+      if(/\b(yes|yeah|yep|sure)\b/.test(t)) return "Yes";
+      if(/\b(no|nope|none)\b/.test(t)) return "No";
+      return null;
+    case "employment":
+      if(/unemploy|lost.*job|no job|laid off|between jobs/.test(t)) return "Unemployed";
+      if(/self.?employ|freelance|own business|contractor/.test(t)) return "Self-employed";
+      if(/part.?time/.test(t)) return "Employed part-time";
+      if(/retire/.test(t)) return "Retired";
+      if(/full.?time|employed|^work/.test(t)) return "Employed full-time";
+      return null;
+    case "income": {
+      const n = extractNumber(t);
+      if(n !== null){
+        if(n < 1500) return "Under $1,500";
+        if(n < 3000) return "$1,500–$3,000";
+        if(n < 5000) return "$3,000–$5,000";
+        return "Over $5,000";
+      }
+      return null;
+    }
+    case "age": {
+      const n = extractNumber(t);
+      if(n !== null){
+        if(n < 26) return "Under 26";
+        if(n <= 49) return "26–49";
+        if(n <= 64) return "50–64";
+        return "65 or older";
+      }
+      return null;
+    }
+    case "military":
+      if(/veteran|served|ex-military|former military/.test(t)) return "I'm a veteran";
+      if(/active duty|currently serving|on duty/.test(t)) return "I'm active duty";
+      if(/family|spouse|husband|wife|parent|brother|sister|son|daughter/.test(t)) return "Immediate family served";
+      if(/\bno\b|not applicable|n\/a|none/.test(t)) return "Not applicable";
+      return null;
+    case "location": {
+      const cleaned = raw.trim();
+      if(cleaned.length < 2) return null;
+      return cleaned.replace(/\b\w/g, c => c.toUpperCase());
+    }
+  }
+  return null;
+}
+
+function interpretPriorities(raw){
+  const t = raw.toLowerCase();
+  const found = [];
+  const map = [
+    [/cost|cheap|premium|afford/, "Low monthly cost"],
+    [/deductible/, "Low deductible"],
+    [/doctor|current provider|keep.*doctor|network/, "Keeping my current doctor"],
+    [/prescription|medication|drug/, "Prescription coverage"],
+    [/mental|therapy|counsel/, "Mental health coverage"],
+    [/dental|vision|eye|teeth/, "Dental & vision"]
+  ];
+  map.forEach(([re,label])=>{ if(re.test(t)) found.push(label); });
+  return found;
+}
+
+/* ============================================================
+   RECOMMENDATION LOGIC
+   ============================================================ */
+function buildRecommendations(a){
+  const plans = [];
+
+  const lowIncome = a.income === "Under $1,500" || a.income === "$1,500–$3,000";
+  const isMilitary = a.military === "I'm a veteran" || a.military === "I'm active duty";
+  const isSenior = a.age === "65 or older";
+  const isUnemployed = a.employment === "Unemployed";
+  const hasKids = a.kids === "Yes";
+
+  if(isSenior){
+    plans.push({provider:"Wayfinder Mutual", plan:"Medicare Advantage Bridge", tag:"Medicare",
+      premium:"$0–$25/mo", deductible:"$0–$250",
+      why:"Based on your age, a Medicare Advantage plan likely covers more than original Medicare alone."});
+  } else if(isUnemployed || lowIncome){
+    plans.push({provider:"Clearpath Marketplace", plan:"Silver Connect ($0-premium tier)", tag:"ACA Marketplace",
+      premium:"$0/mo", deductible:"$900",
+      why:"Your income and employment situation likely qualify you for a fully subsidized marketplace plan."});
+  } else {
+    plans.push({provider:"Clearpath Marketplace", plan:"Bronze Connect", tag:"ACA Marketplace",
+      premium:"$95–$180/mo", deductible:"$2,400",
+      why:"A marketplace plan sized to your income, even with a partial subsidy."});
+  }
+
+  if(hasKids){
+    plans.push({provider:"Civic Health Network", plan:"CHIP Children's Coverage", tag:"Public Program",
+      premium:"$0–$50/mo", deductible:"$0",
+      why:"Children's income thresholds for CHIP are usually higher than adult Medicaid thresholds — your kids may qualify even if you don't."});
+  }
+
+  if(isMilitary){
+    plans.push({provider:"TrueNorth Care", plan:"Veteran Health Bridge", tag:"Veteran & Military",
+      premium:"Varies by VA enrollment", deductible:"Coordinated with VA",
+      why:"This coordinates with VA or TRICARE benefits rather than replacing them."});
+  }
+
+  if(plans.length < 3){
+    plans.push({provider:"Civic Health Network", plan:"Sliding-Scale Care", tag:"Community",
+      premium:"Pay what you can", deductible:"None",
+      why:"A no-insurance-required fallback while any application is pending."});
+  }
+
+  return plans.slice(0,3);
+}
+
+function buildQuestions(a){
+  const qs = [];
+  qs.push("Do I need to reapply if my income changes?");
+  if(a.kids === "Yes") qs.push("Can my children stay covered even if I'm not eligible myself?");
+  if(a.military === "I'm a veteran" || a.military === "I'm active duty") qs.push("How does this plan coordinate with my VA or TRICARE benefits?");
+  if(a.coverage && a.coverage.startsWith("Yes")) qs.push("What happens to my current coverage if I switch?");
+  qs.push("What's the fastest way to get my first appointment after enrolling?");
+  return qs.slice(0,3);
+}
+
+const PRIORITY_TIPS = {
+  "Low monthly cost":"Ask about income-based subsidies — they can bring your monthly cost close to $0.",
+  "Low deductible":"Compare the deductible, not just the premium — a cheaper plan can cost more before it pays out.",
+  "Keeping my current doctor":"Confirm your doctor is in-network before enrolling, not after.",
+  "Prescription coverage":"Ask for the plan's drug formulary — not all plans cover the same medications.",
+  "Mental health coverage":"Mental health visits are required coverage on ACA plans — confirm the copay amount.",
+  "Dental & vision":"Dental and vision are usually separate add-ons — ask whether they can be bundled in."
+};
+
+function buildPriorityTips(a){
+  const list = Array.isArray(a.priorities) ? a.priorities : [];
+  if(list.length === 0){
+    return ["No strong preference noted — we defaulted to balancing cost and coverage breadth."];
+  }
+  return list.map(p => PRIORITY_TIPS[p] || p);
+}
+
+/* ============================================================
+   BACKEND API CALL (key is safe on the server, never in this file)
+   ============================================================ */
+async function callGemini(a){
+  const res = await fetch("/api/recommend", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answers: a })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.text;
+}
+
+function renderAISummary(text){
+  const card = document.createElement("div");
+  card.className = "summary-card";
+
+  // Convert **heading** lines to styled h4, and newlines to <br>
+  const formatted = text
+    .split("\n")
+    .map(line => {
+      const heading = line.match(/^\*\*(.*?)\*\*$/);
+      if(heading) return `<h4>${heading[1]}</h4>`;
+      // inline bold
+      const inlined = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      return inlined ? `<p style="margin:0 0 6px">${inlined}</p>` : "";
+    })
+    .join("");
+
+  card.innerHTML = `
+    <div class="block">${formatted}</div>
+    <div class="summary-disclaimer">This is guidance, not a guarantee — verify eligibility at healthcare.gov or your state Medicaid agency. Sessions are not stored.</div>
+  `;
+
+  const restart = document.createElement("button");
+  restart.className = "restart-btn";
+  restart.type = "button";
+  restart.textContent = "Start over";
+  restart.addEventListener("click", resetChat);
+  card.appendChild(restart);
+
+  appendSummaryNode(card);
+}
+
+function finishChat(){
+  document.getElementById("stepCounter").textContent = "Done";
+  document.getElementById("progressFill").style.width = "100%";
+  inputAreaEl.innerHTML = "";
+  showTyping(700, ()=>{
+    appendMessage("bot", "Thanks — that's everything I need. Let me look at your options...");
+    // Show typing indicator while Gemini thinks
+    const typingRow = document.createElement("div");
+    typingRow.className = "msg-row bot typing";
+    typingRow.innerHTML = `<div class="dot-col"><div class="dot"></div></div>
+      <div class="bubble"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>`;
+    messagesEl.appendChild(typingRow);
+    scrollToBottom();
+
+    callGemini(answers)
+      .then(text => {
+        typingRow.remove();
+        renderAISummary(text);
+      })
+      .catch(err => {
+        typingRow.remove();
+        appendMessage("bot", "Sorry, something went wrong reaching the AI. Please check your API key or try again. (" + err.message + ")");
+      });
+  });
+}
+
+function resetChat(){
+  answers = {};
+  multiSelected = new Set();
+  currentStep = 0;
+  messagesEl.innerHTML = "";
+  inputAreaEl.innerHTML = "";
+  askStep(0);
+}
+</script>
+</body>
+</html>
