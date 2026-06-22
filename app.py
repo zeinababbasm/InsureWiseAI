@@ -13,20 +13,20 @@ st.set_page_config(
 # ── Inject the original CSS so it looks identical ────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root{
-  --bg:#EEF1ED; --bg-dim:#E2E8E2; --paper:#FBFAF6;
-  --ink:#1B2A28; --ink-soft:#516059; --line:#C9D1C8;
-  --pine:#2F6F62; --pine-dark:#1F4F45; --pine-soft:#DCE9E4;
-  --marigold:#E0822F; --marigold-soft:#F7DEC0;
-  --brick:#AE4C3A; --brick-soft:#F1DAD2;
-  --shadow:rgba(27,42,40,0.10); --radius:14px;
+  --bg:#F0F7FF; --bg-dim:#DCE9FA; --paper:#FFFFFF;
+  --ink:#0F172A; --ink-soft:#64748B; --line:rgba(37,99,235,0.16);
+  --pine:#2563EB; --pine-dark:#1D4ED8; --pine-soft:#E0F2FE;
+  --marigold:#0D9488; --marigold-soft:#CCFBF1;
+  --brick:#DC2626; --brick-soft:#FEE2E2;
+  --shadow:rgba(15,23,42,0.10); --radius:14px;
 }
 
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
   background: var(--bg) !important;
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
 [data-testid="stSidebar"] { display: none; }
@@ -36,7 +36,7 @@ footer { display: none; }
 
 .brand {
   display: flex; align-items: center; gap: 10px;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700; font-size: 18px; color: var(--ink);
   padding: 18px 0 6px;
 }
@@ -51,25 +51,25 @@ footer { display: none; }
 }
 
 .disclaimer-box {
-  background: var(--brick-soft); border: 1px solid #DEBBAD;
+  background: var(--brick-soft); border: 1px solid #FCA5A5;
   border-radius: 10px; padding: 12px 16px;
-  font-size: 13px; color: #6E3526; margin-bottom: 20px;
-  font-family: 'Source Serif 4', serif;
+  font-size: 13px; color: #7F1D1D; margin-bottom: 20px;
+  font-family: 'Inter', sans-serif;
 }
 
 .chat-bubble-bot {
   background: var(--pine-soft); color: var(--ink);
   border-radius: 13px; border-top-left-radius: 4px;
   padding: 12px 16px; margin: 6px 0; font-size: 15px;
-  max-width: 85%; font-family: 'Source Serif 4', serif;
+  max-width: 85%; font-family: 'Inter', sans-serif;
   line-height: 1.5;
 }
 .chat-bubble-user {
-  background: var(--marigold); color: #3A2008;
+  background: var(--marigold); color: #FFFFFF;
   border-radius: 13px; padding: 12px 16px;
   margin: 6px 0 6px auto; font-size: 15px;
   max-width: 85%; text-align: right;
-  font-family: 'Source Serif 4', serif; line-height: 1.5;
+  font-family: 'Inter', sans-serif; line-height: 1.5;
 }
 .chat-row-bot { display: flex; gap: 10px; margin-bottom: 4px; }
 .chat-row-user { display: flex; justify-content: flex-end; margin-bottom: 4px; }
@@ -83,11 +83,11 @@ footer { display: none; }
 .summary-card {
   background: var(--paper); border: 1px solid var(--line);
   border-radius: 13px; padding: 22px; margin-top: 10px;
-  font-family: 'Source Serif 4', serif; font-size: 14.5px;
+  font-family: 'Inter', sans-serif; font-size: 14.5px;
   line-height: 1.6;
 }
 .summary-card h4 {
-  font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px;
   text-transform: uppercase; letter-spacing: .06em;
   color: var(--pine-dark); margin: 18px 0 6px;
 }
@@ -110,13 +110,13 @@ footer { display: none; }
   border-radius: 4px; transition: width .35s ease;
 }
 .step-label {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px; color: var(--ink-soft); margin-bottom: 6px;
 }
 .stButton > button {
   background: var(--pine) !important; color: #fff !important;
   border: none !important; border-radius: 999px !important;
-  font-family: 'Space Grotesk', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
   font-weight: 600 !important; font-size: 14px !important;
   padding: 8px 20px !important; margin: 4px 4px 4px 0 !important;
   transition: background .15s !important;
@@ -125,7 +125,7 @@ footer { display: none; }
 .stTextInput > div > div > input {
   border: 1.5px solid var(--line) !important;
   border-radius: 999px !important;
-  font-family: 'Source Serif 4', serif !important;
+  font-family: 'Inter', sans-serif !important;
   font-size: 14.5px !important; padding: 10px 18px !important;
   background: #fff !important; color: var(--ink) !important;
 }
