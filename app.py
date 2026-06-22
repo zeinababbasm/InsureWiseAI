@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import requests
 import os
@@ -91,6 +92,10 @@ footer { display: none; }
   color: var(--pine-dark); margin: 18px 0 6px;
 }
 .summary-card h4:first-child { margin-top: 0; }
+.summary-card ul, .summary-card ol {
+  margin: 0 0 10px; padding-left: 20px;
+}
+.summary-card li { margin-bottom: 6px; }
 .summary-disclaimer {
   font-size: 12px; color: var(--brick);
   background: var(--brick-soft); border-radius: 8px;
@@ -138,7 +143,59 @@ def get_api_key():
     except Exception:
         return os.getenv("GEMINI_API_KEY", "")
 
+# ── Markdown-ish text -> HTML for the summary card ────────────────────────────
+# Handles **bold** section headings, **bold** inline text (any number of spans
+# per line, not just one), and turns consecutive "1. ..." lines into a real
+# <ol> list instead of a wall of separate paragraphs.
+def markdown_to_html(text: str) -> str:
+    def inline_bold(s: str) -> str:
+        return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+
+    parts = []
+    in_list = False
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+
+        if not line:
+            if in_list:
+                parts.append("</ol>")
+                in_list = False
+            continue
+
+        # A line that is ENTIRELY "**Heading**" -> section heading
+        if line.startswith("**") and line.endswith("**") and len(line) > 4:
+            if in_list:
+                parts.append("</ol>")
+                in_list = False
+            parts.append(f"<h4>{line.strip('*')}</h4>")
+            continue
+
+        # "1. text" or "1) text" -> grouped into an <ol>
+        m = re.match(r"^\d+[\.\)]\s+(.*)", line)
+        if m:
+            if not in_list:
+                parts.append("<ol>")
+                in_list = True
+            parts.append(f"<li>{inline_bold(m.group(1))}</li>")
+            continue
+
+        if in_list:
+            parts.append("</ol>")
+            in_list = False
+        parts.append(f"<p style='margin:0 0 8px'>{inline_bold(line)}</p>")
+
+    if in_list:
+        parts.append("</ol>")
+    return "".join(parts)
+
 # ── Gemini call ───────────────────────────────────────────────────────────────
+# Current GA flagship as of mid-2026, free tier, no announced shutdown date.
+# Gemini 1.0 and 1.5 are fully retired and will 404 on every request.
+# If this ever 404s again, run:
+#   curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"
+# to see exactly which model IDs your key can currently call.
+GEMINI_MODEL = "gemini-3.5-flash"
+
 def call_gemini(answers: dict) -> str:
     api_key = get_api_key()
     if not api_key:
@@ -146,7 +203,7 @@ def call_gemini(answers: dict) -> str:
 
     priorities = answers.get("priorities", "Not specified")
     if isinstance(priorities, list):
-        priorities = ", ".join(priorities)
+        priorities = ", ".join(priorities) if priorities else "No strong preference"
 
     prompt = f"""You are InsureWise AI — a warm, knowledgeable assistant that helps Americans navigate public health insurance programs. A user has shared the following about their situation:
 
@@ -166,24 +223,38 @@ Please respond with three clearly labeled sections using these exact headings:
 List 2–3 real public programs or plan types (e.g. Medicaid, CHIP, ACA Marketplace Silver plan, Medicare, VA Health). For each, write 1–2 sentences in plain language explaining WHY this person likely qualifies and what it covers.
 
 **Your Action Checklist**
-A short numbered list: documents to gather (proof of income, residency, etc.) and exactly where to apply (real website or agency name, e.g. healthcare.gov, their state Medicaid agency).
+A short numbered list (1. 2. 3.): documents to gather (proof of income, residency, etc.) and exactly where to apply (real website or agency name, e.g. healthcare.gov, their state Medicaid agency).
 
 **One Thing Most People Miss**
 One sentence about a deadline, rule, or tip that surprises people in this exact situation.
 
-Keep the tone friendly and clear — no jargon without explanation. End with: "Remember: this is guidance, not a guarantee — always verify with your state agency or healthcare.gov." """
+Keep the tone friendly and clear — no jargon without explanation. Do not include any closing disclaimer sentence — the app displays its own disclaimer separately."""
 
     try:
         resp = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}",
             json={"contents": [{"parts": [{"text": prompt}]}]},
             headers={"Content-Type": "application/json"},
             timeout=30,
         )
         data = resp.json()
+
         if "error" in data:
-            return f"Gemini error: {data['error']['message']}"
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+            return f"Gemini error: {data['error'].get('message', 'Unknown error')}"
+
+        candidates = data.get("candidates") or []
+        if not candidates:
+            reason = data.get("promptFeedback", {}).get("blockReason")
+            if reason:
+                return f"Gemini didn't return a result (blocked: {reason}). Try rephrasing one of your answers."
+            return "Gemini didn't return a result. Please try again."
+
+        parts_out = candidates[0].get("content", {}).get("parts", [])
+        text_out = "".join(p.get("text", "") for p in parts_out).strip()
+        return text_out or "Gemini returned an empty response. Please try again."
+
+    except requests.exceptions.Timeout:
+        return "The request to Gemini timed out. Please try again."
     except Exception as e:
         return f"Something went wrong: {str(e)}"
 
@@ -204,7 +275,10 @@ STEPS = [
     {"id": "military",    "question": "Have you or an immediate family member served in the U.S. military?",
      "options": ["I'm a veteran", "I'm active duty", "Immediate family served", "Not applicable"]},
     {"id": "location",    "question": "Which state do you live in?",
-     "options": ["Texas", "California", "Florida", "New York", "Other — I'll type it"]},
+     # "Other" used to be a dead-end chip that recorded the literal text
+     # "Other — I'll type it" as the answer. The free-text box below every
+     # question already covers any state not listed, so it's removed here.
+     "options": ["Texas", "California", "Florida", "New York"]},
     {"id": "priorities",  "question": "What matters most to you in a plan? (pick all that apply)",
      "options": ["Low monthly cost", "Low deductible", "Keeping my current doctor",
                  "Prescription coverage", "Mental health coverage", "Dental & vision"],
@@ -255,15 +329,7 @@ if st.session_state.result is not None:
         else:
             st.markdown(f'<div class="chat-row-user"><div class="chat-bubble-user">{text}</div></div>', unsafe_allow_html=True)
 
-    # Format AI result
-    formatted = ""
-    for line in st.session_state.result.split("\n"):
-        h = line.strip().strip("*")
-        if line.strip().startswith("**") and line.strip().endswith("**"):
-            formatted += f"<h4>{h}</h4>"
-        else:
-            inline = line.replace("**", "<strong>", 1).replace("**", "</strong>", 1)
-            formatted += f"<p style='margin:0 0 6px'>{inline}</p>"
+    formatted = markdown_to_html(st.session_state.result)
 
     st.markdown(f"""
     <div class="summary-card">
